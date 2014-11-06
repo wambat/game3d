@@ -1,0 +1,3 @@
+[submodule "resources/public/js/babylon"]
+	path = resources/public/js/babylon
+	url = https://github.com/BabylonJS/Babylon.js
