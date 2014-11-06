@@ -1,0 +1,98 @@
+(ns game3d.core
+    (:require [reagent.core :as reagent :refer [atom]]
+              [secretary.core :as secretary :include-macros true]
+              [goog.events :as events]
+              [goog.history.EventType :as EventType])
+    (:import goog.History))
+
+;; -------------------------
+;; State
+(def timer (atom (js/Date.)))
+(def canvas (atom nil))
+(def engine (atom nil))
+(def scene (atom nil))
+(def camera (atom nil))
+(defonce app-state (atom {:text "Hello, this is a page: "}))
+
+(defn get-state [k & [default]]
+  (clojure.core/get @app-state k default))
+
+(defn put! [k v]
+  (swap! app-state assoc k v))
+
+;; -------------------------
+;; Views
+(defn page1 []
+  [:div (get-state :text) "Le Page 1"
+   [:div [:a {:href "#/page2"} "go to Le page 2"]]
+   [:canvas {:id "renderCanvas"}] 
+   ])
+
+(defn page2 []
+  [:div (get-state :text) "Le Page 2"
+   [:div [:a {:href "#/"} "go to Le page 1"]]])
+
+(defn main-page []
+  [:div [(get-state :current-page)]])
+
+(defn init-game []
+  (let [sphere (BABYLON.Mesh.CreateSphere. "sphere" 10 1 @scene)]
+    (set! (.-position.x sphere) -2)
+    )
+  
+)
+
+(defn render-loop []
+  (.render @scene))
+
+(defn init-scene []
+  (reset! canvas (.getElementById js/document "renderCanvas"))
+  (reset! engine (BABYLON.Engine. @canvas true))
+  (reset! scene (BABYLON.Scene. @engine))
+  (reset! camera (BABYLON.FreeCamera. 
+                  "camera"
+                  (BABYLON.Vector3. 0 4 -10)
+                  @scene))
+  (.setTarget @camera (BABYLON.Vector3. 0 0 10))
+  (.attachControl @camera @canvas)
+  (BABYLON.PointLight. "light" (BABYLON.Vector3. 0 5 -5) @scene)
+  (.runRenderLoop @engine render-loop)
+  (init-game)
+  )
+
+(defn init-babylon []
+  (if (not= (.-readyState js/document) "complete")
+    (.addEventListener js/document "DOMContentLoaded" (fn []
+                                                        (if (.isSupported BABYLON.Engine) (init-scene))) false)
+    (init-scene))
+  )
+
+;; -------------------------
+
+;; Routes
+(secretary/set-config! :prefix "#")
+
+(secretary/defroute "/" []
+  (put! :current-page page1)
+  (js/setTimeout #(init-babylon) 1000) 
+  )
+
+(secretary/defroute "/page2" []
+  (put! :current-page page2))
+
+;; -------------------------
+;; Initialize app
+(defn init! []
+  (reagent/render-component [main-page] (.getElementById js/document "app")))
+
+;; -------------------------
+;; History
+(defn hook-browser-navigation! []
+  (doto (History.)
+    (events/listen
+     EventType/NAVIGATE
+     (fn [event]
+       (secretary/dispatch! (.-token event))))
+    (.setEnabled true)))
+;; need to run this after routes have been defined
+(hook-browser-navigation!)
