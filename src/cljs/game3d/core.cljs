@@ -20,6 +20,18 @@
 (defn put! [k v]
   (swap! app-state assoc k v))
 
+(defn add-dome []
+  (let [skybox (BABYLON.Mesh.CreateBox. "skyBox" 100 @scene)
+        skyboxMaterial (BABYLON.StandardMaterial. "skyBox" @scene)]
+    (set! (.-backFaceCulling skyboxMaterial) false)
+    (set! (.-diffuseColor skyboxMaterial) (BABYLON.Color3. 0 0 0))
+    (set! (.-specularColor skyboxMaterial) (BABYLON.Color3. 0 0 0))
+    (set! (.-reflectionTexture skyboxMaterial) (BABYLON.CubeTexture. "assets/cubemap/cubemap" @scene))
+    (set! (.-reflectionTexture.coordinatesMode skyboxMaterial) BABYLON.Texture.SKYBOX_MODE)
+    (set! (.-material skybox) skyboxMaterial)
+    )
+  )
+
 ;; -------------------------
 ;; Views
 (defn page1 []
@@ -39,6 +51,7 @@
   (let [sphere (BABYLON.Mesh.CreateSphere. "sphere" 10 1 @scene)]
     (set! (.-position.x sphere) -2)
     )
+  (add-dome)
   
 )
 
