@@ -27,7 +27,11 @@
 (defn add-actor []
   (let [i (infantry/Infantry. {:id 2})
         ]
-    (proto/model i @scene (fn [meshes] 1))
+    (proto/model i @scene (fn [meshes particles skeletons] 
+                            (let [dude (first meshes)]
+                              ;(set! (.-rotation.y dude) Math.PI)
+                              (set! (.-scaling dude) (BABYLON.Vector3. 0.05 0.05 0.05))
+                              (.beginAnimation @scene (first skeletons) 0 100 true 3))))
     )
 )
 (defn add-dome []
