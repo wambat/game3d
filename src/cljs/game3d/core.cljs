@@ -2,7 +2,11 @@
     (:require [reagent.core :as reagent :refer [atom]]
               [secretary.core :as secretary :include-macros true]
               [goog.events :as events]
-              [goog.history.EventType :as EventType])
+              [goog.history.EventType :as EventType]
+              [game3d.test-state :as test-state]
+              [game3d.actors.infantry :as infantry]
+              [game3d.actors.proto :as proto]
+              )
     (:import goog.History))
 
 ;; -------------------------
@@ -20,6 +24,12 @@
 (defn put! [k v]
   (swap! app-state assoc k v))
 
+(defn add-actor []
+  (let [i (infantry/Infantry. {:id 2})
+        ]
+    (proto/model i @scene (fn [meshes] 1))
+    )
+)
 (defn add-dome []
   (let [skybox (BABYLON.Mesh.CreateBox. "skyBox" 100 @scene)
         skyboxMaterial (BABYLON.StandardMaterial. "skyBox" @scene)]
@@ -52,6 +62,7 @@
     (set! (.-position.x sphere) -2)
     )
   (add-dome)
+  (add-actor)
   
 )
 
