@@ -29,9 +29,9 @@
         ]
     (proto/model i @scene (fn [meshes particles skeletons] 
                             (let [dude (first meshes)]
-                              ;(set! (.-rotation.y dude) Math.PI)
                               (set! (.-scaling dude) (BABYLON.Vector3. 0.05 0.05 0.05))
-                              (.beginAnimation @scene (first skeletons) 0 100 true 3))))
+                              ((proto/get-animation-fn-for-action i :walk) @scene (first skeletons))
+                              )))
     )
 )
 (defn add-dome []
