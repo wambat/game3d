@@ -20,6 +20,9 @@
       :run (fn [scene skeleton]
               (.beginAnimation scene skeleton 0 100 true 3)
               )
+      :idle (fn [scene skeleton]
+              (.beginAnimation scene skeleton 0 10 true 3)
+              )
       )
 
     )

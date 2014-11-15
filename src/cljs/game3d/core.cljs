@@ -6,7 +6,10 @@
               [game3d.test-state :as test-state]
               [game3d.actors.infantry :as infantry]
               [game3d.actors.proto :as proto]
+              [cljs.core.async :as async
+               :refer [<! >! chan close! sliding-buffer put! alts! timeout]]
               )
+    (:require-macros [cljs.core.async.macros :as m :refer [go]])
     (:import goog.History))
 
 ;; -------------------------
@@ -16,6 +19,9 @@
 (def engine (atom nil))
 (def scene (atom nil))
 (def camera (atom nil))
+(def prot (atom nil))
+(def protskel (atom nil))
+(def protanim (atom nil))
 (defonce app-state (atom {:text "Hello, this is a page: "}))
 
 (defn get-state [k & [default]]
@@ -30,10 +36,52 @@
     (proto/model i @scene (fn [meshes particles skeletons] 
                             (let [dude (first meshes)]
                               (set! (.-scaling dude) (BABYLON.Vector3. 0.05 0.05 0.05))
+                              (reset! prot dude)
+                              (reset! protskel (first skeletons))
                               ((proto/get-animation-fn-for-action i :walk) @scene (first skeletons))
                               )))
     )
 )
+
+(defn add-click-chan []
+  "adds a channel to capt clicks"
+  (def clicks-chan (chan))
+  (def ground-clicks-chan (chan))
+  (set! (.-onPointerDown @scene) (fn [evnt pickResult]
+                                   (go (>! clicks-chan {:event evnt :pick-result pickResult}))))
+  (go 
+    (loop []
+        (let [t (<! clicks-chan)
+              res (:pick-result t)]
+          (if (= (.-id (.-pickedMesh res)) "ground")
+            (>! ground-clicks-chan t))
+          )
+      (recur)))
+  (go (loop []
+        (let [t (<! ground-clicks-chan)
+              res (:pick-result t)]
+
+          (let [anim (BABYLON.Animation. "protanim" "position" 30 BABYLON.Animation.ANIMATIONTYPE_VECTOR3 )
+                posprot (.-position @prot)
+                postarget (.-pickedPoint res)
+                frames  [{:frame 0 :value posprot}
+                        {:frame 100 :value postarget}]
+                product (BABYLON.Vector3.Cross. posprot postarget)]
+            (.setKeys anim (clj->js frames))
+            (.push (.-animations @prot) anim)
+            (.lookAt @prot postarget 0 0 0)
+            (.beginAnimation @scene @prot 0 100 false)
+            )
+          (.log js/console res)
+        (recur))))
+  )
+
+(defn add-floor []
+  "adds a floor to scene"
+  (let [floor (BABYLON.Mesh.CreateGround. "ground"  32 32 2 @scene)]
+    )
+  )
+
 (defn add-dome []
   (let [skybox (BABYLON.Mesh.CreateBox. "skyBox" 100 @scene)
         skyboxMaterial (BABYLON.StandardMaterial. "skyBox" @scene)]
@@ -49,9 +97,10 @@
 ;; -------------------------
 ;; Views
 (defn page1 []
-  [:div (get-state :text) "Le Page 1"
-   [:div [:a {:href "#/page2"} "go to Le page 2"]]
+  [:div 
    [:canvas {:id "renderCanvas"}] 
+   (get-state :text) "Le Page 1"
+   [:div [:a {:href "#/page2"} "go to Le page 2"]]
    ])
 
 (defn page2 []
@@ -67,7 +116,8 @@
     )
   (add-dome)
   (add-actor)
-  
+  (add-floor)
+  (add-click-chan)
 )
 
 (defn render-loop []
